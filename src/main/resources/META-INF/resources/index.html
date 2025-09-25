@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quarkus Service Interaction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            text-align: left;
+            margin-top: 20px;
+            max-height: 300px; /* Limit height */
+            overflow-y: auto;  /* Add scroll for long lists */
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: #fcfcfc;
+        }
+        li {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 1.1em;
+            color: #555;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        .button-group {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        button#postButton {
+            background-color: #007bff;
+        }
+        button#postButton:hover {
+            background-color: #0056b3;
+        }
+        #statusMessage {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #6c757d;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .loading {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quarkus Service Interaction</h1>
+
+        <div class="button-group">
+            <button id="getButton">Fetch Texts</button>
+            <button id="postButton">Send POST Request</button>
+        </div>
+
+        <p id="statusMessage"></p>
+
+        <ul id="textList">
+            </ul>
+    </div>
+
+    <script>
+        const getButton = document.getElementById('getButton');
+        const postButton = document.getElementById('postButton');
+        const textList = document.getElementById('textList');
+        const statusMessage = document.getElementById('statusMessage');
+
+        const SERVICE_URL = '/requests'; // Your backend endpoint
+
+        // Function to update status message
+        function updateStatus(message, type = '') {
+            statusMessage.textContent = message;
+            statusMessage.className = type; // 'success', 'error', 'loading'
+        }
+
+        // --- GET Request Function ---
+        async function fetchTexts() {
+            updateStatus('Fetching texts...', 'loading');
+            try {
+                const response = await fetch(SERVICE_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                textList.innerHTML = ''; // Clear previous list
+                if (data && data.length > 0) {
+                    data.forEach(text => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = text;
+                        textList.appendChild(listItem);
+                    });
+                    updateStatus('Texts fetched successfully!', 'success');
+                } else {
+                    updateStatus('No texts found.', 'info');
+                    const listItem = document.createElement('li');
+                    listItem.textContent = 'No items to display.';
+                    textList.appendChild(listItem);
+                }
+
+            } catch (error) {
+                console.error('Error fetching texts:', error);
+                updateStatus(`Error fetching texts: ${error.message}`, 'error');
+                textList.innerHTML = ''; // Clear list on error
+                const listItem = document.createElement('li');
+                listItem.textContent = 'Failed to load texts.';
+                textList.appendChild(listItem);
+            }
+        }
+
+        // --- POST Request Function ---
+        async function sendPostRequest() {
+            updateStatus('Sending POST request...', 'loading');
+            try {
+                const response = await fetch(SERVICE_URL, {
+                    method: 'POST',
+                    headers: {
+                        // If your POST expects no body, you might not need Content-Type.
+                        // However, it's good practice for non-GET requests.
+                        // 'Content-Type': 'application/json' 
+                    }
+                    // body: JSON.stringify({}) // If your POST expects an empty JSON body
+                });
+
+                if (response.status === 204 || response.ok) { // 204 No Content, or any 2xx success
+                    updateStatus('POST request successful!', 'success');
+                    // Optionally, refetch texts after a successful POST if it modifies data
+                    // setTimeout(fetchTexts, 1000); // Give backend a moment to process
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${await response.text()}`);
+                }
+
+            } catch (error) {
+                console.error('Error sending POST request:', error);
+                updateStatus(`Error sending POST request: ${error.message}`, 'error');
+            }
+        }
+
+        // --- Event Listeners ---
+        getButton.addEventListener('click', fetchTexts);
+        postButton.addEventListener('click', sendPostRequest);
+
+        // Initial fetch when the page loads
+        document.addEventListener('DOMContentLoaded', fetchTexts);
+    </script>
+</body>
+</html>
