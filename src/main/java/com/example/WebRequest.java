@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class WebRequest extends PanacheEntity {
 
     /** The timestamp when the request was recorded. */
-    public LocalDateTime requestTimestamp;
+    public String requestTimestamp;
 
     /** The User-Agent string of the browser that made the request. */
     public String userAgent;
@@ -25,6 +25,6 @@ public class WebRequest extends PanacheEntity {
      */
     public WebRequest(String userAgent) {
         this.userAgent = userAgent;
-        this.requestTimestamp = LocalDateTime.now();
+        this.requestTimestamp = LocalDateTime.now().toString();
     }
 }

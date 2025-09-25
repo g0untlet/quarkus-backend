@@ -22,33 +22,13 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             padding: 30px;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             text-align: center;
             margin-bottom: 20px;
         }
         h1 {
             color: #007bff;
             margin-bottom: 20px;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-            text-align: left;
-            margin-top: 20px;
-            max-height: 300px; /* Limit height */
-            overflow-y: auto;  /* Add scroll for long lists */
-            border: 1px solid #eee;
-            border-radius: 4px;
-            background-color: #fcfcfc;
-        }
-        li {
-            padding: 10px 15px;
-            border-bottom: 1px solid #eee;
-            font-size: 1.1em;
-            color: #555;
-        }
-        li:last-child {
-            border-bottom: none;
         }
         .button-group {
             margin-top: 25px;
@@ -95,6 +75,34 @@
         .loading {
             color: #ffc107;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+            background-color: #fcfcfc;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            font-size: 1em;
+            word-break: break-all;
+        }
+        th {
+            background-color: #f1f3f6;
+            color: #007bff;
+            font-weight: 600;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .no-data {
+            text-align: center;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -108,22 +116,31 @@
 
         <p id="statusMessage"></p>
 
-        <ul id="textList">
-            </ul>
+        <table id="requestTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>User-Agent</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data rows will be inserted here -->
+            </tbody>
+        </table>
     </div>
 
     <script>
         const getButton = document.getElementById('getButton');
         const postButton = document.getElementById('postButton');
-        const textList = document.getElementById('textList');
         const statusMessage = document.getElementById('statusMessage');
+        const requestTableBody = document.querySelector('#requestTable tbody');
 
         const SERVICE_URL = '/requests'; // Your backend endpoint
 
-        // Function to update status message
         function updateStatus(message, type = '') {
             statusMessage.textContent = message;
-            statusMessage.className = type; // 'success', 'error', 'loading'
+            statusMessage.className = type;
         }
 
         // --- GET Request Function ---
@@ -142,29 +159,33 @@
                 }
 
                 const data = await response.json();
-                
-                textList.innerHTML = ''; // Clear previous list
+                requestTableBody.innerHTML = ''; // Clear previous rows
+
                 if (data && data.length > 0) {
-                    data.forEach(text => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = text;
-                        textList.appendChild(listItem);
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.id}</td>
+                            <td>${item.requestTimestamp}</td>
+                            <td>${item.userAgent}</td>
+                        `;
+                        requestTableBody.appendChild(row);
                     });
                     updateStatus('Texts fetched successfully!', 'success');
                 } else {
                     updateStatus('No texts found.', 'info');
-                    const listItem = document.createElement('li');
-                    listItem.textContent = 'No items to display.';
-                    textList.appendChild(listItem);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td colspan="3" class="no-data">No items to display.</td>`;
+                    requestTableBody.appendChild(row);
                 }
 
             } catch (error) {
                 console.error('Error fetching texts:', error);
                 updateStatus(`Error fetching texts: ${error.message}`, 'error');
-                textList.innerHTML = ''; // Clear list on error
-                const listItem = document.createElement('li');
-                listItem.textContent = 'Failed to load texts.';
-                textList.appendChild(listItem);
+                requestTableBody.innerHTML = '';
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="3" class="no-data">Failed to load texts.</td>`;
+                requestTableBody.appendChild(row);
             }
         }
 
@@ -175,17 +196,15 @@
                 const response = await fetch(SERVICE_URL, {
                     method: 'POST',
                     headers: {
-                        // If your POST expects no body, you might not need Content-Type.
-                        // However, it's good practice for non-GET requests.
-                        // 'Content-Type': 'application/json' 
+                        // 'Content-Type': 'application/json'
                     }
-                    // body: JSON.stringify({}) // If your POST expects an empty JSON body
+                    // body: JSON.stringify({})
                 });
 
-                if (response.status === 204 || response.ok) { // 204 No Content, or any 2xx success
+                if (response.status === 204 || response.ok) {
                     updateStatus('POST request successful!', 'success');
                     // Optionally, refetch texts after a successful POST if it modifies data
-                    // setTimeout(fetchTexts, 1000); // Give backend a moment to process
+                    // setTimeout(fetchTexts, 1000);
                 } else {
                     throw new Error(`HTTP error! status: ${response.status}, message: ${await response.text()}`);
                 }
@@ -196,11 +215,9 @@
             }
         }
 
-        // --- Event Listeners ---
         getButton.addEventListener('click', fetchTexts);
         postButton.addEventListener('click', sendPostRequest);
 
-        // Initial fetch when the page loads
         document.addEventListener('DOMContentLoaded', fetchTexts);
     </script>
 </body>
